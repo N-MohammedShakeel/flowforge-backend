@@ -1,18 +1,17 @@
 package com.ms.flowforge.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Web MVC configuration.
+ *
+ * CORS is handled entirely by SecurityConfig's CorsConfigurationSource bean,
+ * which integrates with the Spring Security filter chain. Defining CORS here
+ * as well would create a duplicate configuration conflict.
+ *
+ * Reserved for future MVC customizations (e.g., message converters, interceptors).
+ */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000")
-                .allowedMethods("*")
-                .allowedHeaders("*")
-                .allowCredentials(true);
-    }
+public class WebConfig {
+    // Intentionally empty — CORS is managed by SecurityConfig
 }

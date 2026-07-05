@@ -2,12 +2,16 @@ spring:
   application:
     name: flowforge-backend
 
-  # Database Configuration
+  # ===== Database =====
   datasource:
-    url: jdbc:postgresql://localhost:5432/flowforge
+    url: jdbc:postgresql://localhost:5432/hexaware
     username: postgres
-    password: postgres
+    password: MSpostgres17
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
 
   jpa:
     hibernate:
@@ -16,39 +20,64 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  # Python AI Service URL
+  # ===== File Upload Limits =====
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 52MB
+      file-size-threshold: 2KB
+
+# ===== Server =====
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ===== Python AI Service =====
   ai:
     python-service:
       url: http://localhost:8000
-      connect-timeout: 30s
-      read-timeout: 120s
+      connect-timeout: 30000
+      read-timeout: 120000
 
-server:
-  port: 8080
+# ===== JWT Configuration =====
+app:
+  jwt:
+    # 256-bit secret key (change in production — use env var JWT_SECRET)
+    secret: "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437"
+    # Access token: 15 minutes
+    expiration-ms: 9000000000000
+    # Refresh token: 7 days
+    refresh-expiration-ms: 604800000
 
-# Actuator (Observability)
+# ===== Actuator =====
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
-      show-details: always
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
 
-# Logging
+info:
+  application:
+    name: FlowForge Backend
+    version: 0.0.1-SNAPSHOT
+    environment: development
+
+# ===== Logging =====
 logging:
   level:
     com.ms.flowforge: DEBUG
+    org.springframework.security: INFO
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
-
-# Security (Basic for now - can be enhanced later)
-security:
-  basic:
-    enabled: false
+    org.hibernate.orm.jdbc.bind: TRACE

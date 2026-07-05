@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: flowforge-backend
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/flowforge
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Python AI Service URL
+  ai:
+    python-service:
+      url: http://localhost:8000
+      connect-timeout: 30s
+      read-timeout: 120s
+
+server:
+  port: 8080
+
+# Actuator (Observability)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    com.ms.flowforge: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+
+# Security (Basic for now - can be enhanced later)
+security:
+  basic:
+    enabled: false

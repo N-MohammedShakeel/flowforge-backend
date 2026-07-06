@@ -1,6 +1,7 @@
 package com.ms.flowforge.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ms.flowforge.exception.AuthException;
 import com.ms.flowforge.exception.ResourceNotFoundException;
@@ -96,31 +97,42 @@ public class ProjectService {
     public ProjectDto saveCanvas(String id, Map<String, Object> canvasData, String ownerEmail) {
         Project project = findAndVerifyOwnership(id, ownerEmail);
         try {
+            // Save the state directly on the project for "persist saves"
+            project.setCanvasState(objectMapper.writeValueAsString(canvasData));
+            project.setStatus("ACTIVE");
+            projectRepository.save(project);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize canvas data", e);
+        }
+        log.info("Persist canvas saved for project: {}", id);
+        return mapToDto(project);
+    }
+
+    @Transactional
+    public ProjectDto createCanvasVersion(String id, Map<String, Object> canvasData, String ownerEmail) {
+        Project project = findAndVerifyOwnership(id, ownerEmail);
+        try {
             // Check if we need to create a new version
             List<CanvasState> states = canvasStateRepository.findByProjectIdOrderByVersionDesc(id);
             int nextVersion = states.isEmpty() ? 1 : states.get(0).getVersion() + 1;
             
-            // If the request contains a flag for 'minorUpdate', we could overwrite the latest.
-            // But for now, we just save a new version on every explicit save/enhance.
             CanvasState state = new CanvasState();
             state.setProject(project);
             state.setVersion(nextVersion);
             state.setNodes(objectMapper.writeValueAsString(canvasData.getOrDefault("nodes", List.of())));
             state.setEdges(objectMapper.writeValueAsString(canvasData.getOrDefault("edges", List.of())));
             
-            if (canvasData.containsKey("review")) {
-                state.setReview(objectMapper.writeValueAsString(canvasData.get("review")));
-            }
-            
             canvasStateRepository.save(state);
             
-            // Still update project status
+            // Also update the persist save
+            project.setCanvasState(objectMapper.writeValueAsString(canvasData));
             project.setStatus("ACTIVE");
             projectRepository.save(project);
+            
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize canvas data", e);
         }
-        log.info("Canvas saved (version) for project: {}", id);
+        log.info("Canvas version {} saved for project: {}", id);
         return mapToDto(project);
     }
 
@@ -128,25 +140,61 @@ public class ProjectService {
     public Map<String, Object> loadCanvas(String id, String ownerEmail) {
         Project project = findAndVerifyOwnership(id, ownerEmail);
         
-        List<CanvasState> states = canvasStateRepository.findByProjectIdOrderByVersionDesc(id);
-        if (states.isEmpty()) {
-            return Map.of("nodes", List.of(), "edges", List.of());
+        if (project.getCanvasState() != null && !project.getCanvasState().isEmpty()) {
+            try {
+                return objectMapper.readValue(project.getCanvasState(), new TypeReference<Map<String, Object>>() {});
+            } catch (JsonProcessingException e) {
+                log.error("Failed to deserialize project canvas state");
+            }
         }
         
-        CanvasState latest = states.get(0);
+        return Map.of("nodes", List.of(), "edges", List.of(), "version", 0);
+    }
+
+    // ===== Versioning and Review Endpoints =====
+
+    @Transactional
+    public ProjectDto saveProjectReview(String id, Object reviewData, String ownerEmail) {
+        Project project = findAndVerifyOwnership(id, ownerEmail);
         try {
-            Object nodes = objectMapper.readValue(latest.getNodes(), Object.class);
-            Object edges = objectMapper.readValue(latest.getEdges(), Object.class);
-            Object review = latest.getReview() != null ? objectMapper.readValue(latest.getReview(), Object.class) : null;
-            
+            project.setLatestReview(objectMapper.writeValueAsString(reviewData));
+            projectRepository.save(project);
+            log.info("Saved new review for project: {}", id);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize review data", e);
+        }
+        return mapToDto(project);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Integer> getCanvasVersions(String id, String ownerEmail) {
+        findAndVerifyOwnership(id, ownerEmail);
+        return canvasStateRepository.findByProjectIdOrderByVersionDesc(id)
+                .stream()
+                .map(CanvasState::getVersion)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> loadCanvasVersion(String id, Integer version, String ownerEmail) {
+        findAndVerifyOwnership(id, ownerEmail);
+        CanvasState state = canvasStateRepository.findByProjectIdAndVersion(id, version)
+                .orElseThrow(() -> new ResourceNotFoundException("CanvasState version", version.toString()));
+        return mapCanvasStateToMap(state);
+    }
+
+    private Map<String, Object> mapCanvasStateToMap(CanvasState state) {
+        try {
+            Object nodes = objectMapper.readValue(state.getNodes(), Object.class);
+            Object edges = objectMapper.readValue(state.getEdges(), Object.class);
             return Map.of(
                 "nodes", nodes,
                 "edges", edges,
-                "review", review != null ? review : Map.of()
+                "version", state.getVersion()
             );
         } catch (JsonProcessingException e) {
-            log.error("Failed to deserialize canvas for project {}: {}", id, e.getMessage());
-            return Map.of("nodes", List.of(), "edges", List.of());
+            log.error("Failed to deserialize canvas state");
+            return Map.of("nodes", List.of(), "edges", List.of(), "version", state.getVersion());
         }
     }
 
@@ -173,6 +221,13 @@ public class ProjectService {
         dto.setTags(project.getTags());
         dto.setCreatedAt(project.getCreatedAt());
         dto.setUpdatedAt(project.getUpdatedAt());
+        try {
+            if (project.getLatestReview() != null) {
+                dto.setLatestReview(objectMapper.readValue(project.getLatestReview(), Object.class));
+            }
+        } catch (JsonProcessingException e) {
+            log.error("Failed to map latestReview for project {}: {}", project.getId(), e.getMessage());
+        }
         return dto;
     }
 }

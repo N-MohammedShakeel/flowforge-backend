@@ -24,6 +24,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.List;
 
@@ -54,9 +55,14 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
                 // Public health & docs
-                .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                .requestMatchers(
+                    new AntPathRequestMatcher("/actuator/**"),
+                    new AntPathRequestMatcher("/v3/api-docs/**"),
+                    new AntPathRequestMatcher("/swagger-ui/**"),
+                    new AntPathRequestMatcher("/swagger-ui.html")
+                ).permitAll()
                 // OPTIONS preflight (required for CORS)
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Everything else requires authentication

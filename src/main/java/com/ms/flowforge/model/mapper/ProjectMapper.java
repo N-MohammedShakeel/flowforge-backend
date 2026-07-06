@@ -21,14 +21,17 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface ProjectMapper {
 
     @Mapping(target = "canvasState", ignore = true)
+    @Mapping(target = "latestReview", ignore = true)
     ProjectDto toDto(Project project);
 
     @Mapping(target = "canvasState", ignore = true)
+    @Mapping(target = "latestReview", ignore = true)
     Project toEntity(ProjectDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "canvasState", ignore = true)
+    @Mapping(target = "latestReview", ignore = true)
     void updateEntityFromDto(ProjectDto dto, @MappingTarget Project project);
 }

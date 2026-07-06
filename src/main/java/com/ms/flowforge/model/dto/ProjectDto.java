@@ -19,4 +19,5 @@ public class ProjectDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Object canvasState;   // Flexible for nodes + edges
+    private Object latestReview;  // Stored project-level review
 }

@@ -66,6 +66,18 @@ public class PythonAiClient {
                 "project_zip_path", request.getProjectZipPath() != null ? request.getProjectZipPath() : ""
             );
             return restTemplate.postForObject(url, buildEntity(payload), ArchitectureResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.BadRequest e) {
+            log.warn("Python AI generate returned 400 Bad Request: {}", e.getResponseBodyAsString());
+            String detail = "Invalid request context.";
+            try {
+                com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(e.getResponseBodyAsString());
+                if (root.has("detail")) {
+                    detail = root.get("detail").asText();
+                }
+            } catch (Exception parseEx) {
+                log.error("Failed to parse Python error response", parseEx);
+            }
+            throw new com.ms.flowforge.exception.OutOfContextException(detail);
         } catch (RestClientException e) {
             log.error("Python AI generate failed: {}", e.getMessage());
             throw new RuntimeException("AI generation service is unavailable. Please try again later.", e);

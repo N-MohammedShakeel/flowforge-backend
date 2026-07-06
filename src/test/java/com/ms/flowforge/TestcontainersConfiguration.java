@@ -1,18 +1,13 @@
 package com.ms.flowforge;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
-import org.testcontainers.mysql.MySQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
+/**
+ * Testcontainers configuration placeholder.
+ * MySQL container support removed — project uses PostgreSQL.
+ * Re-add PostgreSQL testcontainer if integration tests are needed.
+ */
 @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfiguration {
-
-	@Bean
-	@ServiceConnection
-	MySQLContainer mysqlContainer() {
-		return new MySQLContainer(DockerImageName.parse("mysql:latest"));
-	}
-
+    // No beans defined — placeholder for future test infrastructure
 }

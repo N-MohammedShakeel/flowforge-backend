@@ -8,19 +8,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import com.ms.flowforge.exception.ErrorResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Centralized exception handling — maps exception types to structured HTTP responses.
- * All error responses use the same {@link ErrorResponse} shape for frontend consistency.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    // ===== Validation (400) =====
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -62,6 +57,19 @@ public class GlobalExceptionHandler {
                         HttpStatus.FORBIDDEN.value(),
                         "Access denied",
                         null,
+                        LocalDateTime.now()
+                ));
+    }
+
+    // ===== Out of Context (400) =====
+
+    @ExceptionHandler(OutOfContextException.class)
+    public ResponseEntity<ErrorResponse> handleOutOfContext(OutOfContextException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        ex.getMessage(),
+                        "OUT_OF_CONTEXT",
                         LocalDateTime.now()
                 ));
     }

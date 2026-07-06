@@ -29,6 +29,10 @@ public class Project {
     @Column(columnDefinition = "jsonb")
     private String canvasState;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String latestReview;
+
     private String status;
 
     @ElementCollection

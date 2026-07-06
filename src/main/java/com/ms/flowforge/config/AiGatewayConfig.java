@@ -28,7 +28,7 @@ public class AiGatewayConfig {
     @Value("${spring.ai.python-service.connect-timeout:30000}")
     private long connectTimeoutMs;
 
-    @Value("${spring.ai.python-service.read-timeout:120000}")
+    @Value("${spring.ai.python-service.read-timeout:300000}")
     private long readTimeoutMs;
 
     /**
